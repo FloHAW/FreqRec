@@ -26,9 +26,11 @@
         android:id="@+id/volume"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="32dp"
+        android:layout_margin="10dp"
+        android:max="4000"
         android:focusable="false"
-        android:focusableInTouchMode="false" />
+        android:focusableInTouchMode="false"
+        android:background="#ffffff" />
 
     <TextView
         android:layout_width="fill_parent"

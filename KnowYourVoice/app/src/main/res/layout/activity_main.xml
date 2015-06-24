@@ -9,7 +9,7 @@
     <ImageButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/Rec"
+        android:id="@+id/status"
         android:src="@drawable/ic_record_audio"
         android:background="#000000"
         android:baselineAlignBottom="false"
@@ -20,17 +20,14 @@
        />
 
     <ProgressBar
+        android:id="@+id/volume"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/volume"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
         android:layout_margin="10dp"
         android:max="4000"
-        android:focusable="false"
-        android:focusableInTouchMode="false"
-        android:background="#ffffff" />
+        android:progressDrawable="@drawable/probar" />
+
 
     <TextView
         android:layout_width="fill_parent"
@@ -63,16 +60,6 @@
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true" />
 
-    <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/Stop"
-        android:src="@drawable/stoprec"
-        android:background="#000000"
-        android:visibility="invisible"
-        android:layout_alignTop="@+id/Rec"
-        android:layout_alignRight="@+id/Rec"
-        android:layout_alignEnd="@+id/Rec"
-        />
+
 
 </RelativeLayout>

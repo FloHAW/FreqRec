@@ -15,9 +15,7 @@
         android:baselineAlignBottom="false"
         android:paddingBottom="20dp"
         android:layout_above="@+id/recText"
-        android:layout_alignRight="@+id/recText"
-        android:layout_alignEnd="@+id/recText"
-       />
+        android:layout_centerHorizontal="true" />
 
     <ProgressBar
         android:id="@+id/volume"
@@ -33,33 +31,42 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:id="@+id/pitch"
-        android:layout_marginBottom="80dp"
-        android:layout_above="@+id/freq"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:textColor="#ffffff" />
-
-    <TextView
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
         android:id="@+id/freq"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:textColor="#ffffff" />
+        android:textColor="#ffffff"
+        android:textSize="30sp"
+        android:gravity="center" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Start Recording"
         android:id="@+id/recText"
-        android:textColor="#ffffff"
+        android:textColor="#ff00ff01"
         android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:textColorHighlight="@color/abc_primary_text_material_light"
+        android:text="Push to Start "
+        android:textIsSelectable="true"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        android:typeface="monospace" />
 
+    <Chronometer
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/chrono"
+        android:textSize="30sp"
+        android:layout_below="@+id/recText"
+        android:layout_marginTop="48dp"
+        android:gravity="center"
+        android:textColor="#FFFFFF"
+        android:clickable="false"
+        android:textStyle="bold"
+        android:background="#5cb7de"
+        android:typeface="monospace" />
 
 
 </RelativeLayout>

@@ -2,36 +2,49 @@ package com.example.flo.knowyourvoice;
 
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.text.format.Time;
 import android.view.View;
+import android.widget.Chronometer;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.jtransforms.fft.DoubleFFT_1D;
+
 import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 
 public class MainActivity extends Activity {
 
-    private static final int SAMPLERATE = 16000;
+    private static final int SAMPLERATE = 8000;
     private File mRecording;
-    private AudioRecord audioRecord;
+    private AudioRecord audioRecord, freqRecord;
     private boolean isRecording = false;
-    private short[] buffer ;
+    private short[] buffer, sampleShortBuffer;
+    private Chronometer chrono;
+    long time = 0;
+
+    private DoubleFFT_1D fft;
+    private static final int FRAMES_PER_BUFFER = 1024;
+    private static final int BYTES_PER_SAMPLE = 2;
+    private double sampleDoubleBuffer[];
+    private Thread recordingThread = null;
+
+    public int bufferSize = AudioRecord.getMinBufferSize(SAMPLERATE, AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_16BIT);
+
 
 
 
@@ -40,56 +53,98 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        initRecorder();
+        buffer = new short[bufferSize];
+        int bufferSizeInBytes = FRAMES_PER_BUFFER * BYTES_PER_SAMPLE;
+        audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLERATE, AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT, bufferSize);
 
-        final ImageButton statusBtn = (ImageButton)findViewById(R.id.status);
+        freqRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLERATE, AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT, bufferSizeInBytes);
 
-        final TextView rec = (TextView)findViewById(R.id.recText);
 
-        final TextView freq = (TextView)findViewById(R.id.freq);
+        final ImageButton statusBtn = (ImageButton) findViewById(R.id.status);
 
-        final TextView pitch = (TextView)findViewById(R.id.pitch);
+        final TextView rec = (TextView) findViewById(R.id.recText);
+
+        final TextView freq = (TextView) findViewById(R.id.freq);
+
+
+
+        chrono =(Chronometer)findViewById(R.id.chrono);
 
         statusBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                chrono.setBase(SystemClock.elapsedRealtime()+time);
+                chrono.start();
                 if (!isRecording) {
+
+                    fft = new DoubleFFT_1D(FRAMES_PER_BUFFER);
+                    sampleShortBuffer = new short[FRAMES_PER_BUFFER];
+                    sampleDoubleBuffer = new double[FRAMES_PER_BUFFER];
+
+
                     statusBtn.setImageResource(R.drawable.stoprec);
                     isRecording = true;
                     audioRecord.startRecording();
                     mRecording = getFile("raw");
                     startBufferedWrite(mRecording);
 
-                    //change Text
-                    rec.setText("Stop Recording!");
-                    pitch.setText("Pitch:");
-                    freq.setText("Hz");
+                    recordingThread = new Thread(new Runnable() {
+                        public void run() {
+                            processAudioData();
+                        }
+                    }, "AudioRecorder Thread");
+                    recordingThread.start();
+                    freq.setText(""+"Hz");
 
-                }else{
+
+                    //change Text
+                    rec.setText("Push to Stop");
+                    rec.setTextColor(Color.parseColor("#FFFF002A"));
+
+
+                } else {
                     statusBtn.setImageResource(R.drawable.ic_record_audio);
+                    chrono.stop();
+                    if (null != audioRecord) {
+                        isRecording = false;
+                        try {
+                            recordingThread.join();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        recordingThread = null;
+                        audioRecord.stop();
+                        //change Text
+                        rec.setText("Push to Start");
+                        rec.setTextColor(Color.parseColor("#ff00ff01"));
 
-                    isRecording = false;
-                    audioRecord.stop();
-                    File waveFile = getFile("wav");
-                    try {
-                        rawToWave(mRecording, waveFile);
-                    } catch (IOException e) {
-                        Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
-                    Toast.makeText(MainActivity.this, "Gespeichert als " + waveFile.getName(),
-                            Toast.LENGTH_SHORT).show();
-
-                    //change Text
-                    rec.setText("Start Recording!");
-                    pitch.setText("");
-                    freq.setText("");
-
                 }
             }
 
         });
+    }
+
+    private void convertToDouble(short[] input, double[] output){
+        double scale = 1 / 32768.0;
+        for(int i = 0; i < input.length; i++){
+            output[i] = input[i] * scale;
+        }
+    }
+
+    private void processAudioData() {
+
+        while (isRecording) {
+            // gets the voice output from microphone to byte format
+            freqRecord.read(sampleShortBuffer, 0, FRAMES_PER_BUFFER);
+
+            convertToDouble(sampleShortBuffer, sampleDoubleBuffer);
+            fft.realForward(sampleDoubleBuffer);
 
 
+        }
     }
 
     @Override
@@ -98,18 +153,9 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    private void initRecorder() {
-        int bufferSize = AudioRecord.getMinBufferSize(SAMPLERATE, AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT);
-        buffer = new short[bufferSize];
-        audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLERATE, AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT, bufferSize);
-    }
-
     private void startBufferedWrite(final File file) {
-
-       final ProgressBar pB = (ProgressBar)findViewById(R.id.volume);
-
+        buffer = new short[bufferSize];
+        final ProgressBar pB = (ProgressBar) findViewById(R.id.volume);
 
         new Thread(new Runnable() {
             @Override
@@ -127,7 +173,6 @@ public class MainActivity extends Activity {
                         if (readSize > 0) {
                             final double amplitude = sum / readSize;
                             pB.setProgress((int) Math.sqrt(amplitude));
-
 
                         }
                     }
@@ -151,81 +196,26 @@ public class MainActivity extends Activity {
                         }
                     }
                 }
+
             }
         }).start();
+
     }
-
-
-    private void rawToWave(final File rawFile, final File waveFile) throws IOException {
-
-        byte[] rawData = new byte[(int) rawFile.length()];
-        DataInputStream input = null;
-        try {
-            input = new DataInputStream(new FileInputStream(rawFile));
-            input.read(rawData);
-        } finally {
-            if (input != null) {
-                input.close();
-            }
-        }
-
-        DataOutputStream output = null;
-        try {
-            output = new DataOutputStream(new FileOutputStream(waveFile));
-            // WAVE header
-            // see http://ccrma.stanford.edu/courses/422/projects/WaveFormat/
-            writeString(output, "RIFF"); // chunk id
-            writeInt(output, 36 + rawData.length); // chunk size
-            writeString(output, "WAVE"); // format
-            writeString(output, "fmt "); // subchunk 1 id
-            writeInt(output, 16); // subchunk 1 size
-            writeShort(output, (short) 1); // audio format (1 = PCM)
-            writeShort(output, (short) 1); // number of channels
-            writeInt(output, SAMPLERATE); // sample rate
-            writeInt(output, SAMPLERATE * 2); // byte rate
-            writeShort(output, (short) 2); // block align
-            writeShort(output, (short) 16); // bits per sample
-            writeString(output, "data"); // subchunk 2 id
-            writeInt(output, rawData.length); // subchunk 2 size
-            // Audio data (conversion big endian -> little endian)
-            short[] shorts = new short[rawData.length / 2];
-            ByteBuffer.wrap(rawData).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
-            ByteBuffer bytes = ByteBuffer.allocate(shorts.length * 2);
-            for (short s : shorts) {
-                bytes.putShort(s);
-            }
-            output.write(bytes.array());
-        } finally {
-            if (output != null) {
-                output.close();
-            }
-        }
-    }
-
-    private File getFile(final String suffix) {
+   private File getFile(final String suffix) {
         Time time = new Time();
         time.setToNow();
         return new File(Environment.getExternalStorageDirectory(), time.format("%Y%m%d%H%M%S") + "." + suffix);
     }
 
-    private void writeInt(final DataOutputStream output, final int value) throws IOException {
-        output.write(value >> 0);
-        output.write(value >> 8);
-        output.write(value >> 16);
-        output.write(value >> 24);
-    }
 
-    private void writeShort(final DataOutputStream output, final short value) throws IOException {
-        output.write(value >> 0);
-        output.write(value >> 8);
-    }
-
-    private void writeString(final DataOutputStream output, final String value) throws IOException {
-        for (int i = 0; i < value.length(); i++) {
-            output.write(value.charAt(i));
-        }
-    }
 }
+
+
+
+
+
+
+
 
 
 

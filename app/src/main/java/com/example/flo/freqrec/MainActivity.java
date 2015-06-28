@@ -90,6 +90,7 @@ public class MainActivity extends Activity {
                     fft = new DoubleFFT_1D(FRAMES_PER_BUFFER);
                     sampleShortBuffer = new short[FRAMES_PER_BUFFER];
                     sampleDoubleBuffer = new double[FRAMES_PER_BUFFER];
+                    maxValue=0; // Reset maxValue
                     freq.setText(""); // Reset frequency-text before new measuring starts
                     statusBtn.setImageResource(R.drawable.stoprec); // Change to Stop-Button
                     isRecording = true;
@@ -137,7 +138,7 @@ public class MainActivity extends Activity {
 
                             }finally {
                                 frequency = (SAMPLE_RATE * maxIndex) / 2048; // converts the largest peak to get the frequency
-                                maxValue=0; // Reset maxValue
+
                                 pB.setProgress(0); // Reset the ProgressBar
 
 

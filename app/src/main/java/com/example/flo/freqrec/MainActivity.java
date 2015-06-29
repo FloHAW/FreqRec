@@ -13,7 +13,7 @@ Vorgehensweise:
 
 1. Start der App
 2. Drücken des Aufnahmebuttons
-3. Aufnahme des Tones für ca. 3 Sekunden
+3. Aufnahme des Tones für ca. 5 Sekunden
 4. Drücken des Stoppbuttons
 5. Gemessene Frequenz erscheint
 
@@ -50,9 +50,9 @@ public class MainActivity extends Activity {
     private final int FRAMES_PER_BUFFER = 1024;
     private int bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT);
-    private double sampleDoubleBuffer[];
     private short[] buffer, sampleShortBuffer;
     private double magnitude[] = new double [FRAMES_PER_BUFFER/2];
+    private double sampleDoubleBuffer[];
     private int maxValue = 0;
     private int maxIndex = 0;
     private int frequency = 0;
@@ -109,7 +109,7 @@ public class MainActivity extends Activity {
 
                                 while (isRecording) {
 
-                                    // Reads in from the recorded buffer and calculates the amplitude to set the progress to the progressbar
+                                    // Reading in from the recorded buffer and calculates the amplitude to set the progress to the progressbar
                                     double sum = 0;
                                     int readSize = audioRecord.read(buffer, 0, buffer.length);
                                     for (int i = 0; i < readSize; i++) {
@@ -137,10 +137,9 @@ public class MainActivity extends Activity {
                                 }
 
                             }finally {
-                                frequency = (SAMPLE_RATE * maxIndex) / 2048; // converts the largest peak to get the frequency
+                                frequency = (SAMPLE_RATE * maxIndex) / (FRAMES_PER_BUFFER*2); // converts the largest peak to get the frequency
 
                                 pB.setProgress(0); // Reset the ProgressBar
-
 
                             }
 
